@@ -31,6 +31,7 @@ mongoose
 app.post("/recipes", (req, res) => {
   Recipe.create(req.body)
   .then((recipe)=> {
+    debugger
     res.send("Recipe created!")
   })
   .catch((err)=> {
