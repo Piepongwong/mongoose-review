@@ -13,6 +13,39 @@ app.options("*", cors());
 app.use(cors());
 app.use(bodyParser.json());
 
+let protectedRoute = (req, res, next) => {
+  if (!req.headers.authorization)
+    return res.status(403).send("Unauthenticated");
+  let token = req.headers.authorization.split(" ")[1];
+
+  if (!token) return res.status(403).send("Unauthenticated");
+  try {
+    var decoded = jwt.verify(token, "shhhhh");
+  } catch (err) {
+    return res.status(403).send("Unauthenticated");
+  }
+
+  if (!decoded) res.status(403).send("Unauthenticated");
+
+  User.findById(decoded.id).then((user) => {
+    if (!user) res.status(403).send("Unauthenticated");
+    else {
+      next();
+    }
+  });
+}
+app.use("/recipes", (req, res, next) => {
+  req.test = "I can manipulate the req object for my friends";
+  console.log("I am part of a middleware function");
+  next();
+});
+
+app.use("/recipes", (req, res, next) => {
+  console.log("You see A?", req.test);
+  next();
+});
+
+
 mongoose
   .connect(MONGODB_URI, {
     useCreateIndex: true,
@@ -27,29 +60,17 @@ mongoose
   });
 
 app.post("/recipes", (req, res) => {
-  
-  let token = req.headers.authorization.split(" ")[1];
-
-  if(!token) return res.status(403).send("Unauthenticated");
-  var decoded = jwt.verify(token, "shhhhh");
-  if(!decoded) res.status(403).send("Unauthenticated");
-
-  User.findById(decoded.id).then((user) => {
-    if (!user) res.status(403).send("Unauthenticated");
-    else {
-      Recipe.create(req.body)
-        .then((recipe) => {
-          debugger;
-          res.send("Recipe created!");
-        })
-        .catch((err) => {
-          res.status(500).send("ooooeps");
-        });
-    }
-  });
+  Recipe.create(req.body)
+    .then((recipe) => {
+      debugger;
+      res.send("Recipe created!");
+    })
+    .catch((err) => {
+      res.status(500).send("ooooeps");
+    });
 });
 
-app.get("/recipes", (req, res) => {
+app.get("/recipes", protectedRoute, (req, res) => {
   Recipe.find({})
     .then((recipes) => {
       res.status(200).json(recipes);
@@ -59,7 +80,7 @@ app.get("/recipes", (req, res) => {
     });
 });
 
-app.get("/recipes/:id", (req, res) => {
+app.get("/recipes/:id", protectedRoute, (req, res) => {
   Recipe.findById(req.params.id)
     .then((recipe) => {
       if (!recipe) res.status(404).json({ message: "No such recipe" });
