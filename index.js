@@ -8,7 +8,7 @@ const MONGODB_URI = "mongodb://localhost:27017/recipe-app";
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
-
+const Cook = require("./models/Cook.model")
 app.options("*", cors());
 app.use(cors());
 app.use(bodyParser.json());
@@ -28,23 +28,14 @@ let protectedRoute = (req, res, next) => {
   if (!decoded) res.status(403).send("Unauthenticated");
 
   User.findById(decoded.id).then((user) => {
+
     if (!user) res.status(403).send("Unauthenticated");
     else {
+      req.user = user;
       next();
     }
   });
 }
-app.use("/recipes", (req, res, next) => {
-  req.test = "I can manipulate the req object for my friends";
-  console.log("I am part of a middleware function");
-  next();
-});
-
-app.use("/recipes", (req, res, next) => {
-  console.log("You see A?", req.test);
-  next();
-});
-
 
 mongoose
   .connect(MONGODB_URI, {
@@ -59,10 +50,10 @@ mongoose
     console.log("err", err);
   });
 
-app.post("/recipes", (req, res) => {
-  Recipe.create(req.body)
+app.post("/recipes", protectedRoute, (req, res) => {
+
+  Recipe.create({...req.body, author: req.user._id})
     .then((recipe) => {
-      debugger;
       res.send("Recipe created!");
     })
     .catch((err) => {
@@ -70,12 +61,16 @@ app.post("/recipes", (req, res) => {
     });
 });
 
-app.get("/recipes", protectedRoute, (req, res) => {
+app.get("/recipes", (req, res) => {
+  console.log("reaced")
   Recipe.find({})
+    .populate("creator")
+    .populate("author")
     .then((recipes) => {
       res.status(200).json(recipes);
     })
     .catch((err) => {
+      console.log(err)
       res.status(500).json({ message: "ooooeps" });
     });
 });
