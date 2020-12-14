@@ -12,6 +12,7 @@ const Cook = require("./models/Cook.model")
 app.options("*", cors());
 app.use(cors());
 app.use(bodyParser.json());
+require('dotenv').config()
 
 let protectedRoute = (req, res, next) => {
   if (!req.headers.authorization)
@@ -86,7 +87,8 @@ app.get("/recipes/:id", protectedRoute, (req, res) => {
     });
 });
 
-app.use("/auth", require("./routes/users"));
+app.use("/auth", require("./routes/auth"));
+app.use("/user", protectedRoute, require("./routes/user"));
 
 app.listen(3000, () => {
   console.log("Express running");

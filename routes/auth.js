@@ -23,7 +23,7 @@ app.post("/signup", (req, res) => {
     }
   });
 });
-// /auth/login
+
 app.post("/login", (req, res) => {
     
   User.findOne({ email: req.body.email }).then((user) => {
